@@ -1,0 +1,50 @@
+syntax = "proto3";
+package chat;
+
+service ChatService {
+    rpc GetAllUsers (GetAllUsersRequest) returns (GetAllUsersReply);
+    rpc RecieveMessages (RecieveMessagesRequest) returns (stream RecieveMessagesReply);
+    rpc SendMessage (SendMessageRequest) returns (SendMessageReply);
+    // rpc RegisterUser()
+}
+
+//-------------------------------------//
+
+message GetAllUsersRequest {}
+
+message GetAllUsersReply {
+    repeated UserInfo users = 1;
+}
+//-------------------------------------//
+message RecieveMessagesRequest {
+    string to_user_login = 1;
+}
+
+message RecieveMessagesReply {
+    Message message = 1;
+}
+//-------------------------------------//
+message SendMessageRequest {
+    Message message = 1;
+}
+
+message SendMessageReply {
+}
+//-------------------------------------//
+
+message UserInfo {
+    string login = 1;
+    string full_name = 2;
+}
+
+message MessageBody {
+    string body = 1;
+    string timestamp = 2;
+}
+
+message Message {
+    string from_user_login = 1;
+    string to_user_login = 2;
+    MessageBody body = 3;
+}
+//-------------------------------------//

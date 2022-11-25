@@ -1,0 +1,1 @@
+# python -m grpc_tools.protoc -I ../../../protobufs --python_out=. --pyi_out=. --grpc_python_out=. ../../../protobufs/chat.proto
