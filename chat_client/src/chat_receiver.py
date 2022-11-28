@@ -54,4 +54,4 @@ class ChatReceiver(threading.Thread):
         return self._stop_event.is_set()
     
     def is_unauth(self):
-        return self._unauth_event.is_set()   
+        return self._unauth_event.is_set()
