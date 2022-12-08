@@ -4,6 +4,8 @@ import grpc
 import protobufs.chat_pb2 as chat_pb2
 import protobufs.chat_pb2_grpc as chat_pb2_grpc
 from google.protobuf.timestamp_pb2 import Timestamp
+from getpass import getpass
+
 
 import chat_receiver
 
@@ -43,7 +45,7 @@ class ChatClient:
         self._stub = None
         self._receiver = None
 
-        self._login = ""
+        self._username = ""
         self._connection_addr = f"{host}:{port}"
         logging.debug("Chat client object created")
 
@@ -51,26 +53,43 @@ class ChatClient:
         """Ask for username and connect."""
         if self._is_connected:
             return
-        if not self._login:
-            self._set_login_name()
         try:
             self._channel = grpc.insecure_channel(self._connection_addr)
             self._stub = chat_pb2_grpc.ChatServiceStub(self._channel)
-        except Exception as e:
+            self._handle_register()
+            self._login()
+        except ConnectionRefusedError as e:
             logging.error("Cannot connect [%s]", e)
+        # except Exception as e:
+        #     logging.error("Cannot connect [%s]", e)
         else:
             self._is_connected = True
             logging.info("Chat client connected")
+        finally:
+            self.disconnect()
+            
+    def _login(self) -> None:
+        username =self._get_username()
+        for _ in range(3):
+            req = chat_pb2.LoginUserRequest(login=username, password=getpass())
+            try:
+                self._stub.LoginUser(request=req)
+            except grpc.RpcError as rpc_error:
+                if rpc_error.code() == grpc.StatusCode.UNAUTHENTICATED:
+                    logging.info("Wrong creds, try again...", username)
+                else:
+                    raise rpc_error
+            else:
+                self._username = username
+                return
+        raise ConnectionRefusedError("Login failed")
 
-    def change_login_name(self) -> None:
-        """Change or set user login name"""
-        self._set_login_name()
-
-    def _set_login_name(self) -> None:
-        self._login = input("login: ").strip()
-        while not self._login:
-            self._login = input("login: ").strip()
+    def _get_username(self) -> str:
+        username = input("login: ").strip()
+        while not username:
+            username = input("login: ").strip()
             logging.info("Login cannot be blank")
+        return username
 
     def run(self):
         """Run chat client"""
@@ -83,7 +102,30 @@ class ChatClient:
         self._open_stream_receiver()
         self._start_chat()
         self._close_stream_receiver()
-
+        
+    def _handle_register(self) -> None:
+        for _ in range(3):
+            if input("Do you want to register first? yes/[no]").strip().lower() in ["y", "yes"]:
+                username = self._get_username()
+                full_name = input("Full name:").strip()
+                user_info = chat_pb2.UserInfo(login=username,full_name=full_name)
+                req = chat_pb2.RegisterUserRequest(user_info=user_info, password=getpass())
+                try:
+                    self._stub.RegisterUser(request=req)
+                except grpc.RpcError as rpc_error:
+                    if rpc_error.code() == grpc.StatusCode.ALREADY_EXISTS:
+                        logging.info("User %s already exists...", username)
+                    else:
+                        raise rpc_error
+                else:
+                    logging.info("u")
+                    logging.info("User %s already exists", username)
+                    return
+            else:
+                return
+        logging.info("User %s register failed...", username)
+        return
+    
     def _log_avaible_users(self) -> None:
         response = self._stub.GetAllUsers(request=chat_pb2.GetAllUsersRequest())
         users_str = "".join(
@@ -99,7 +141,7 @@ class ChatClient:
             else:
                 self._receiver.join()
         response_iterator = self._stub.RecieveMessages(
-            chat_pb2.RecieveMessagesRequest(to_user_login=self._login)
+            chat_pb2.RecieveMessagesRequest(to_user_login=self._username)
         )
         self._receiver = chat_receiver.ChatReceiver(response_iterator)
         self._receiver.start()
@@ -150,7 +192,7 @@ class ChatClient:
             body=text_to_send, timestamp=timestamp.ToJsonString()
         )
         return chat_pb2.Message(
-            from_user_login=self._login, to_user_login=user, body=body
+            from_user_login=self._username, to_user_login=user, body=body
         )
 
     def _log_chat_message(self, message: chat_pb2.Message) -> None:
@@ -184,7 +226,7 @@ class ChatClient:
 if __name__ == "__main__":
     logging.basicConfig(format="%(message)s", level=logging.DEBUG)
 
-    chat_client = ChatClient("172.27.0.3", 50051)
+    chat_client = ChatClient("localhost", 50051)
 
     chat_client.connect()
     chat_client.run()

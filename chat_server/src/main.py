@@ -1,12 +1,14 @@
 import logging
-import queue
 from concurrent import futures
 from typing import Dict, List
 
-import time
+import etcd
 import grpc
 import protobufs.chat_pb2 as chat_pb2
 import protobufs.chat_pb2_grpc as chat_pb2_grpc
+from google.protobuf.json_format import MessageToJson, Parse
+from auth import UserAuth
+from helpers.messages_handler_v2 import EtcdMessagesHandler
 
 
 class ChatServer(chat_pb2_grpc.ChatServiceServicer):
@@ -23,11 +25,8 @@ class ChatServer(chat_pb2_grpc.ChatServiceServicer):
     """
 
     def __init__(self) -> None:
-        self.users_list: List[chat_pb2.UserInfo] = [
-            chat_pb2.UserInfo(login="user1", full_name="User Someone"),
-            chat_pb2.UserInfo(login="user2", full_name="User Someone2"),
-        ]
-        self.users_message_lists: Dict[str, queue.Queue] = {}
+        self.etcd_client = etcd.Client(host="172.28.0.2", port=2379, protocol="http")
+
 
     def GetAllUsers(self, request, context) -> chat_pb2.GetAllUsersReply:
         """Get registred users.
@@ -64,23 +63,20 @@ class ChatServer(chat_pb2_grpc.ChatServiceServicer):
         -------
         grpc.StatusCode.NOT_FOUND
             When user to send message doesn't exist
-        grpc.StatusCode.RESOURCE_EXHAUSTED
-            When message queue to user is full
         """
         to_user = request.message.to_user_login
-        if not self._check_user(to_user):
+        from_user = request.message.from_user_login
+        try:
+            handler_to_send = EtcdMessagesHandler(client=self.etcd_client, to_user=to_user)
+            handler_to_store = EtcdMessagesHandler(client=self.etcd_client, to_user=from_user)
+
+        except KeyError as e:
             context.abort(grpc.StatusCode.NOT_FOUND, f"User {to_user} is do not exist")
             return chat_pb2.SendMessageReply()
-        try:
-            self.users_message_lists[to_user].put(request.message, block=False)
-        except queue.Full as e:
-            context.abort(
-                grpc.StatusCode.RESOURCE_EXHAUSTED,
-                f"Message queue for user {to_user} is full",
-            )
-            logging.debug(context.details())
+        handler_to_send.add_message_to_queue(to_send_queue=True, value=MessageToJson(request.message))
+        handler_to_store.add_message_to_queue(to_send_queue=False, value=MessageToJson(request.message))
+
         logging.debug(f"Message added to queue for user: {to_user}")
-        # TODO: Save message to date store
         return chat_pb2.SendMessageReply()
 
     def RecieveMessages(self, request, context) -> chat_pb2.RecieveMessagesReply:
@@ -108,47 +104,72 @@ class ChatServer(chat_pb2_grpc.ChatServiceServicer):
             When user who want to listen doesn't exist
         """
         stream_to_user = request.to_user_login
-        if not self._check_user(stream_to_user):
+        try:
+            handler = EtcdMessagesHandler(client=self.etcd_client, to_user=stream_to_user)
+        except KeyError as e:
             context.abort(
                 grpc.StatusCode.UNAUTHENTICATED,
                 f"User {stream_to_user} is not registred",
             )
             return chat_pb2.RecieveMessagesReply()
-
-        start = time.time()
+        
+        response = handler.get_elems_from_queue(from_send_queue=False, 
+                                                    get_all=True)
+        for _, elem in response[-10:]:
+            message = Parse(elem, chat_pb2.Message())
+            yield chat_pb2.RecieveMessagesReply(message=message)
+        logging.debug("[10 messeges from previous session restored]")
         while context.is_active():
-            try:
-                message = self.users_message_lists[stream_to_user].get(block=False)
-            except queue.Empty:
-                if (
-                    time.time() > start + 30
-                ):  # Sometimes send empty message to synch client thread
-                    start = time.time()
-                    logging.debug("sending synch message: [%s]", start)
+            response = handler.get_elems_from_queue(from_send_queue=True, 
+                                                    get_all=True)
+            if not response:
+                response = handler.get_elems_from_queue(from_send_queue=True, 
+                                                        get_all=False, 
+                                                        blocking=True, 
+                                                        timeout=30)
+                if not response:
+                    # Sometimes send empty message to synch client thread
+                    logging.debug("Timeout reached, sending synch message: [%s]")
                     yield chat_pb2.RecieveMessagesReply()
-                continue
             else:
-                logging.debug(
-                    "Message from: %s to %s, body: %s",
-                    message.from_user_login,
-                    message.to_user_login,
-                    message.body.body,
-                )
-                yield chat_pb2.RecieveMessagesReply(message=message)
+                for _, elem in response:
+                    message = Parse(elem, chat_pb2.Message())
+                    logging.debug(
+                        "Message from: %s to %s, body: %s",
+                        message.from_user_login,
+                        message.to_user_login,
+                        message.body.body,
+                    )
+                    yield chat_pb2.RecieveMessagesReply(message=message)
+                handler.delete_and_store_sent_messages(response)
         logging.info("Stream to user %s ended", stream_to_user)
         return chat_pb2.RecieveMessagesReply()
 
-    def _check_user(self, user: str) -> bool:
-        logging.debug("User [%s] checking", user)
-        if user not in self.users_message_lists:
-            logging.debug("User [%s] has no message queue", user)
-            if user not in [x.login for x in self.users_list]:
-                logging.debug("User [%s] not registred", user)
-                return False
-            self.users_message_lists[user] = queue.Queue()
-            return True
-        return True
-
+    def RegisterUser(self, request, context) -> chat_pb2.RegisterUserReply:
+        auth = UserAuth(self.etcd_client)
+        try:
+            auth.register_user(request)
+        except KeyError as e:
+            context.abort(
+                grpc.StatusCode.ALREADY_EXISTS,
+                e,
+            )
+            return chat_pb2.RegisterUserReply()
+        else:
+            return chat_pb2.RegisterUserReply()
+    
+    def LoginUser(self, request, context) -> chat_pb2.LoginUserReply:
+        auth = UserAuth(self.etcd_client)
+        try:
+            auth.login_user(request)
+        except KeyError as e:
+            context.abort(
+                grpc.StatusCode.UNAUTHENTICATED,
+                e,
+            )
+            return chat_pb2.LoginUserReply()
+        else:
+            return chat_pb2.LoginUserReply()
 
 def serve():
     port = "50051"

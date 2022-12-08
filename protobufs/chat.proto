@@ -5,12 +5,14 @@ service ChatService {
     rpc GetAllUsers (GetAllUsersRequest) returns (GetAllUsersReply);
     rpc RecieveMessages (RecieveMessagesRequest) returns (stream RecieveMessagesReply);
     rpc SendMessage (SendMessageRequest) returns (SendMessageReply);
-    // rpc RegisterUser()
+    rpc RegisterUser (RegisterUserRequest) returns (RegisterUserReply);
+    rpc LoginUser (LoginUserRequest) returns (LoginUserReply);
 }
 
 //-------------------------------------//
 
-message GetAllUsersRequest {}
+message GetAllUsersRequest {
+}
 
 message GetAllUsersReply {
     repeated UserInfo users = 1;
@@ -47,4 +49,28 @@ message Message {
     string to_user_login = 2;
     MessageBody body = 3;
 }
+
+message EtcdUserInfo {
+    UserInfo user_info = 1;
+    bool is_active = 2;
+    string hashed_password = 3;
+    string register_timestamp = 4;
+}
 //-------------------------------------//
+
+message LoginUserRequest {
+    string login = 1;
+    string password = 2;
+}
+
+message LoginUserReply {
+}
+//-------------------------------------//
+
+message RegisterUserRequest {
+    UserInfo user_info = 1;
+    string password = 2;
+}
+
+message RegisterUserReply {
+}
