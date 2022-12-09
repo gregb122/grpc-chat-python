@@ -1,0 +1,90 @@
+# CMake-generated files
+.ninja_deps
+.ninja_logs
+cmake/protobuf/*.cmake
+cmake_install.cmake
+CMakeCache.txt
+CTestTestfile.cmake
+CMakeFiles/*
+Testing/Temporary/*
+
+/core
+/protoc
+/test_plugin
+/tests
+/lite-test
+/protoc-*.*
+
+# downloaded files
+/gmock
+
+# in-tree configure-generated files
+/config.h
+config.log
+config.status
+
+libtool
+protobuf-lite.pc
+protobuf.pc
+.deps
+stamp-h1
+
+# in-tree build products
+*.o
+*.lo
+*.la
+*.so
+*.a
+
+.dirstamp
+
+# python and common
+*pb2.py
+*.pyc
+*.pyi
+*.egg-info
+*_pb2.py
+*_pb2_grpc.py
+python/**/*.egg
+python/.eggs/
+python/.tox
+python/build/
+*/protobufs/*.py
+*/protobufs/*.pyi
+python/docs/_build/
+/__pycashe__/
+src/js_embed
+
+# vim generated
+*.swp
+
+# Directories suggested by cmake/README.md
+/debug/
+/solution/
+/release/
+
+# Cocoapods artifacts
+# Podfile.lock and the workspace file are tracked, to ease deleting them. That's
+# needed to trigger "pod install" to rerun the preinstall commands.
+Pods/
+
+# Common build subdirectories.
+.build/
+_build/
+
+# Visual Studio 2017
+.vs
+
+# Visual Studio Code
+/.vscode/
+
+# IntelliJ
+.idea
+*.iml
+
+# Eclipse
+**/.settings
+**/.project
+**/.classpath
+
+.cache
