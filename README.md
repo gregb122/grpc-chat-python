@@ -84,6 +84,9 @@ Run etcd2, you can do this with docker:
 
 ```sh
 docker run --name etcd2 -d -p 2379:2379 -p 2380:2380 -p 4001:4001 -p 7001:7001 -v ~/temp/data0/etcd:/data wolfdeng/etcd2-docker
+
+etcdctl --endpoints=http://<ip_of_etcd:2379> ls
+
 ```
 
 install required python libs from requirements.txt:
