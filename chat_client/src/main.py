@@ -11,8 +11,8 @@ import chat_receiver
 
 
 class ChatClient:
-    """A class to represent a chat client object.
-    """
+    """A class to represent a chat client object."""
+
     def __init__(self, host: str, port: int) -> None:
         """Constructs all the necessary attributes for the client object.
 
@@ -31,8 +31,7 @@ class ChatClient:
         logging.debug("Chat client object created")
 
     def connect(self) -> None:
-        """Asks for username and connect.
-        """
+        """Asks for username and connect."""
         if self._is_connected:
             return
         try:
@@ -54,13 +53,18 @@ class ChatClient:
         Raises:
             rpc_error: Raised when error type was not expected.
         """
-        if input("Do you want to register first? yes/[no]").strip().lower() in ["y", "yes"]:
+        if input(
+            "Do you want to register first? yes/[no]"
+        ).strip().lower() in ["y", "yes"]:
             username = self._get_username()
             full_name = input("Full name:").strip()
             password = getpass()
-            req = chat_pb2.RegisterUserRequest(user_info=chat_pb2.UserInfo(login=username,
-                                                                           full_name=full_name),
-                                               password=password)
+            req = chat_pb2.RegisterUserRequest(
+                user_info=chat_pb2.UserInfo(
+                    login=username, full_name=full_name
+                ),
+                password=password,
+            )
             try:
                 self._stub.RegisterUser(request=req)
             except grpc.RpcError as rpc_error:
@@ -75,7 +79,7 @@ class ChatClient:
                 return
         else:
             return
-            
+
     def _handle_login(self) -> None:
         """Handles user login, user is asked to provide username and password.
         User have 3 chances to input valid password.
@@ -84,12 +88,15 @@ class ChatClient:
             rpc_error: Raised when error type was not expected.
             ConnectionRefusedError: Raised when user provide wrong creds 3 times.
         """
-        username =self._get_username()
+        username = self._get_username()
         for _ in range(3):
             password = getpass()
             try:
-                self._stub.LoginUser(request=chat_pb2.LoginUserRequest(login=username, 
-                                                                       password=password))
+                self._stub.LoginUser(
+                    request=chat_pb2.LoginUserRequest(
+                        login=username, password=password
+                    )
+                )
             except grpc.RpcError as rpc_error:
                 if rpc_error.code() == grpc.StatusCode.UNAUTHENTICATED:
                     logging.info("Login failed, username: %s", username)
@@ -116,8 +123,7 @@ class ChatClient:
         return username
 
     def run(self):
-        """Runs chat client.(Use connect(0) method before run(0)).
-        """
+        """Runs chat client.(Use connect(0) method before run(0))."""
         if not self._is_connected:
             logging.error(
                 "chat client is disconnected. (You have to call connect(0) before run(0))"
@@ -127,18 +133,19 @@ class ChatClient:
         self._open_chat_receiver()
         self._start_chat()
         self._close_chat_receiver()
-    
+
     def _log_registred_users(self) -> None:
-        """Logges registred users.
-        """
-        response = self._stub.GetAllUsers(request=chat_pb2.GetAllUsersRequest())
+        """Logges registred users."""
+        response = self._stub.GetAllUsers(
+            request=chat_pb2.GetAllUsersRequest()
+        )
         users_str = "".join(
             [f"{res.login} - {res.full_name}, " for res in response.users]
         )
         logging.info("Registered users: %s", users_str)
 
     def _open_chat_receiver(self) -> None:
-        """Helper method which handles chat receiver. 
+        """Helper method which handles chat receiver.
         Checks if receiver is already created and is running.
         If not, it creates new.
         """
@@ -159,7 +166,9 @@ class ChatClient:
         It starts infinity loop, then takes username who will be messaged and creates chat room.
         """
         while True:
-            user = input("\nType user to start chat with or /q to quit: \n").strip()
+            user = input(
+                "\nType user to start chat with or /q to quit: \n"
+            ).strip()
             if user == "/q":
                 break
             if self._receiver.is_unauth():
@@ -208,7 +217,7 @@ class ChatClient:
     def _create_message(
         self, user: str, text_to_send: str, timestamp: Timestamp
     ) -> chat_pb2.Message:
-        """Creates protobuf message, and fills it with nesecary informations. 
+        """Creates protobuf message, and fills it with nesecary informations.
 
         Args:
             user (str): Target user.
@@ -240,8 +249,7 @@ class ChatClient:
         )
 
     def disconnect(self) -> None:
-        """Close any open connections.
-        """
+        """Close any open connections."""
         if not self._is_connected:
             logging.error("You have to connect first...")
             return
@@ -253,8 +261,7 @@ class ChatClient:
         logging.info("Disconnected")
 
     def _close_chat_receiver(self) -> None:
-        """Closes chat receiver.
-        """
+        """Closes chat receiver."""
         if self._receiver is None:
             return
         self._receiver.s_stop()

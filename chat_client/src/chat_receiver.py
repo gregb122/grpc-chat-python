@@ -10,6 +10,7 @@ class ChatReceiver(threading.Thread):
     """Thread class which listen for incomming messages till stop(). The thread itself has to check
     regularly for the stopped() and set unauth condition on rpc_error UNAUTHENTICATED.
     """
+
     def __init__(
         self, response_iterator: Iterator[chat_pb2.RecieveMessagesReply]
     ) -> None:
@@ -18,7 +19,7 @@ class ChatReceiver(threading.Thread):
         Args:
             response_iterator (Iterator[chat_pb2.RecieveMessagesReply]):
                 Response stream returned by stub RecieveMessages(1).
-            
+
         """
         super(ChatReceiver, self).__init__()
         self._stop_event = threading.Event()
@@ -27,8 +28,7 @@ class ChatReceiver(threading.Thread):
         logging.basicConfig(format="%(message)s", level=logging.DEBUG)
 
     def run(self) -> None:
-        """Run receiver and listen for messages on response iterator.
-        """
+        """Run receiver and listen for messages on response iterator."""
         logging.debug("Stream started on another thread...")
         while not self.is_stopped():
             try:
@@ -42,7 +42,7 @@ class ChatReceiver(threading.Thread):
                     logging.debug("Stream canceled by server...")
                 elif rpc_error.code() == grpc.StatusCode.UNAVAILABLE:
                     logging.debug("Server unavaible...")
-                else: 
+                else:
                     raise
                 self.s_stop()
                 return
@@ -60,8 +60,7 @@ class ChatReceiver(threading.Thread):
         self.s_stop()
 
     def s_stop(self) -> None:
-        """Set stop event flag.
-        """
+        """Set stop event flag."""
         self._stop_event.set()
 
     def is_stopped(self) -> bool:

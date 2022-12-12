@@ -5,9 +5,9 @@ import etcd
 from urllib3.exceptions import ReadTimeoutError
 
 
-class EtcdMessagesHandler():
-    """Class which implement queue operations for messages with ETCD.
-    """
+class EtcdMessagesHandler:
+    """Class which implement queue operations for messages with ETCD."""
+
     def __init__(self, client: etcd.Client, to_user: str) -> None:
         """Construct all the necessary attributes for the object.
 
@@ -27,7 +27,7 @@ class EtcdMessagesHandler():
             raise KeyError("User not found")
         self._to_send_str = f"/users/{to_user}/to_send_queue"
         self._sent_str = f"/users/{to_user}/sent_queue"
-        
+
         try:
             client.write(self._to_send_str, None, dir=True, prevExist=False)
         except etcd.EtcdAlreadyExist:
@@ -36,8 +36,8 @@ class EtcdMessagesHandler():
             client.write(self._sent_str, None, dir=True, prevExist=False)
         except etcd.EtcdAlreadyExist:
             logging.debug("Dir sent_msgs already created")
-        
-    def add_message_to_queue(self, to_send_queue:bool, value: str) -> None:
+
+    def add_message_to_queue(self, to_send_queue: bool, value: str) -> None:
         """Adds message to queue.
 
         Args:
@@ -45,15 +45,19 @@ class EtcdMessagesHandler():
                                   If false, then message will be added to sent queue.
             value (str): Message string to store in queue.
         """
-        self.client.write(self._to_send_str if to_send_queue else self._sent_str,
-                          value, 
-                          append=True)
-    
-    def get_elems_from_queue(self,
-                             from_send_queue:bool,
-                             get_all: bool=False,
-                             blocking: bool=False,
-                             timeout: int=None) -> List[Tuple[str, str]]:
+        self.client.write(
+            self._to_send_str if to_send_queue else self._sent_str,
+            value,
+            append=True,
+        )
+
+    def get_elems_from_queue(
+        self,
+        from_send_queue: bool,
+        get_all: bool = False,
+        blocking: bool = False,
+        timeout: int = None,
+    ) -> List[Tuple[str, str]]:
         """Gets messeges from specific queue.
 
         Args:
@@ -68,14 +72,16 @@ class EtcdMessagesHandler():
             List[Tuple[str, str]]: List of pairs - ETCD key, message string.
         """
         try:
-            res = self.client.read(self._to_send_str if from_send_queue else self._sent_str,
-                                   recursive=True,
-                                   wait=blocking,
-                                   sorted=True,
-                                   timeout=timeout)
+            res = self.client.read(
+                self._to_send_str if from_send_queue else self._sent_str,
+                recursive=True,
+                wait=blocking,
+                sorted=True,
+                timeout=timeout,
+            )
         except Exception as e:
             return []
-        
+
         leaf = next(res.leaves)
         if leaf is res:
             return []
@@ -83,8 +89,9 @@ class EtcdMessagesHandler():
             return [(lf.key, lf.value) for lf in res.leaves]
         return [(leaf.key, leaf.value)]
 
-    def store_and_delete_sent_messages(self, 
-                                       list_msg: List[Tuple[str, str]]) -> None:
+    def store_and_delete_sent_messages(
+        self, list_msg: List[Tuple[str, str]]
+    ) -> None:
         """Stores messages in sent queue and deletes them from to send queue.
 
         Args:
@@ -92,7 +99,7 @@ class EtcdMessagesHandler():
         """
         for elem in list_msg:
             self.store_and_delete_sent_message(*elem)
-            
+
     def store_and_delete_sent_message(self, key: str, value: str) -> None:
         """Stores one message in sent queue and delete it from to send queue.
 
