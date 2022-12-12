@@ -12,32 +12,13 @@ import chat_receiver
 
 class ChatClient:
     """A class to represent a chat client object.
-
-    ...
-
-    Methods
-    -------
-    connect():
-        Ask the user for login name and creates chat service stub,
-        must be called before run().
-    change_login_name():
-        Change or set the user name
-    run():
-        Run chat client
-    disconnect():
-        Close channel, receiver thread and any other stuff opened.
-        Must be called at the end of object existance.
     """
-
     def __init__(self, host: str, port: int) -> None:
         """Constructs all the necessary attributes for the client object.
 
-        Parameters
-        ----------
-            host : str
-                Host address(Address of the server)
-            port : int
-                Port number
+        Args:
+            host (str): Host address(Address of the server).
+            port (int): Port number.
         """
         self._is_connected = False
 
@@ -50,33 +31,40 @@ class ChatClient:
         logging.debug("Chat client object created")
 
     def connect(self) -> None:
-        """Ask for username and connect."""
+        """Asks for username and connect.
+        """
         if self._is_connected:
             return
         try:
             self._channel = grpc.insecure_channel(self._connection_addr)
             self._stub = chat_pb2_grpc.ChatServiceStub(self._channel)
             self._handle_register()
-            self._login()
+            self._handle_login()
         except ConnectionRefusedError as e:
             logging.error("Cannot connect [%s]", e)
-        # except Exception as e:
-        #     logging.error("Cannot connect [%s]", e)
         else:
             self._is_connected = True
             logging.info("Chat client connected")
         finally:
             self.disconnect()
             
-    def _login(self) -> None:
+    def _handle_login(self) -> None:
+        """Handles user login, user is asked to provide username and password.
+        User have 3 chances to input valid password.
+
+        Raises:
+            rpc_error: Raised when error type was not expected.
+            ConnectionRefusedError: Raised when user provide wrong creds 3 times.
+        """
         username =self._get_username()
         for _ in range(3):
-            req = chat_pb2.LoginUserRequest(login=username, password=getpass())
+            password = getpass()
             try:
-                self._stub.LoginUser(request=req)
+                self._stub.LoginUser(request=chat_pb2.LoginUserRequest(login=username, 
+                                                                       password=password))
             except grpc.RpcError as rpc_error:
                 if rpc_error.code() == grpc.StatusCode.UNAUTHENTICATED:
-                    logging.info("Wrong creds, try again...", username)
+                    logging.info("Login failed, username: s%", username)
                 else:
                     raise rpc_error
             else:
@@ -85,55 +73,71 @@ class ChatClient:
         raise ConnectionRefusedError("Login failed")
 
     def _get_username(self) -> str:
-        username = input("login: ").strip()
+        """Reads username from user.
+
+        Returns:
+            str: Username of the user.
+        """
+        username = input("username: ").strip()
         while not username:
-            username = input("login: ").strip()
-            logging.info("Login cannot be blank")
+            username = input("username: ").strip()
+            logging.info("Username cannot be blank")
         return username
 
     def run(self):
-        """Run chat client"""
+        """Runs chat client.(Use connect(0) method before run(0)).
+        """
         if not self._is_connected:
             logging.error(
-                "chat client is disconnected. (You have to call connect() before run())"
+                "chat client is disconnected. (You have to call connect(0) before run(0))"
             )
             return
 
-        self._open_stream_receiver()
+        self._open_chat_receiver()
         self._start_chat()
-        self._close_stream_receiver()
+        self._close_chat_receiver()
         
     def _handle_register(self) -> None:
-        for _ in range(3):
-            if input("Do you want to register first? yes/[no]").strip().lower() in ["y", "yes"]:
-                username = self._get_username()
-                full_name = input("Full name:").strip()
-                user_info = chat_pb2.UserInfo(login=username,full_name=full_name)
-                req = chat_pb2.RegisterUserRequest(user_info=user_info, password=getpass())
-                try:
-                    self._stub.RegisterUser(request=req)
-                except grpc.RpcError as rpc_error:
-                    if rpc_error.code() == grpc.StatusCode.ALREADY_EXISTS:
-                        logging.info("User %s already exists...", username)
-                    else:
-                        raise rpc_error
+        """Handles user register, takes username, full name and password from user.
+        User have 3 chances to input valid password.
+
+        Raises:
+            rpc_error: Raised when error type was not expected.
+        """
+        if input("Do you want to register first? yes/[no]").strip().lower() in ["y", "yes"]:
+            username = self._get_username()
+            full_name = input("Full name:").strip()
+            password = getpass()
+            req = chat_pb2.RegisterUserRequest(user_info=chat_pb2.UserInfo(login=username,
+                                                                           full_name=full_name),
+                                               password=password)
+            try:
+                self._stub.RegisterUser(request=req)
+            except grpc.RpcError as rpc_error:
+                if rpc_error.code() == grpc.StatusCode.ALREADY_EXISTS:
+                    logging.info("User %s already exists...", username)
                 else:
-                    logging.info("u")
-                    logging.info("User %s already exists", username)
-                    return
+                    raise rpc_error
             else:
+                logging.info("User %s registered successfully", username)
                 return
-        logging.info("User %s register failed...", username)
-        return
+        else:
+            return
     
-    def _log_avaible_users(self) -> None:
+    def _log_registred_users(self) -> None:
+        """Logges registred users.
+        """
         response = self._stub.GetAllUsers(request=chat_pb2.GetAllUsersRequest())
         users_str = "".join(
             [f"{res.login} - {res.full_name}, " for res in response.users]
         )
         logging.info("Registered users: %s", users_str)
 
-    def _open_stream_receiver(self) -> None:
+    def _open_chat_receiver(self) -> None:
+        """Helper method which handles chat receiver. 
+        Checks if receiver is already created and is running.
+        If not, it creates new.
+        """
         logging.debug("Stream receiver connecting...")
         if self._receiver is not None:
             if not self._receiver.is_stopped():
@@ -147,18 +151,26 @@ class ChatClient:
         self._receiver.start()
 
     def _start_chat(self) -> None:
+        """Handles choose of user to message, it basicly main menu of the program.
+        It starts infinity loop, then takes username who will be messaged and creates chat room.
+        """
         while True:
             user = input("\nType user to start chat with or /q to quit: \n").strip()
             if user == "/q":
                 break
             if self._receiver.is_unauth():
-                self._close_stream_receiver()
+                self._close_chat_receiver()
                 break
             self._start_message_user(user)
             logging.info("Diconnected from chatroom with user: %s", user)
         logging.info("Quiting chat app...")
 
     def _start_message_user(self, user: str) -> None:
+        """Handles chat with user.
+
+        Args:
+            user (str): Target user to send chat messeges.
+        """
         timestamp = Timestamp()
         logging.info("\nIf you want to quit chatroom, pls type /q")
         while True:
@@ -169,7 +181,7 @@ class ChatClient:
                 break
             if self._receiver.is_stopped():
                 logging.warning("Receiver stream closed, trying to reopen...")
-                self._open_stream_receiver()
+                self._open_chat_receiver()
             if self._receiver.is_unauth():
                 logging.error("User is not registred")
                 return
@@ -181,12 +193,22 @@ class ChatClient:
             except grpc.RpcError as rpc_error:
                 if rpc_error.code() == grpc.StatusCode.NOT_FOUND:
                     logging.info("User [%s] not found", user)
-                    self._log_avaible_users()
+                    self._log_registred_users()
                     break
 
     def _create_message(
         self, user: str, text_to_send: str, timestamp: Timestamp
     ) -> chat_pb2.Message:
+        """Creates protobuf message, and fills it with nesecary informations. 
+
+        Args:
+            user (str): Target user.
+            text_to_send (str): String to send to target user.
+            timestamp (Timestamp): Creation timestamp.
+
+        Returns:
+            chat_pb2.Message: Filled protobuf message.
+        """
         timestamp.GetCurrentTime()
         body = chat_pb2.MessageBody(
             body=text_to_send, timestamp=timestamp.ToJsonString()
@@ -196,6 +218,11 @@ class ChatClient:
         )
 
     def _log_chat_message(self, message: chat_pb2.Message) -> None:
+        """Logges massege with correct human format.
+
+        Args:
+            message (chat_pb2.Message): protobuf message.
+        """
         logging.info(
             "[%s] %s > %s",
             message.body.timestamp,
@@ -204,18 +231,21 @@ class ChatClient:
         )
 
     def disconnect(self) -> None:
-        """Close any open connections"""
+        """Close any open connections.
+        """
         if not self._is_connected:
             logging.error("You have to connect first...")
             return
-        self._close_stream_receiver()
+        self._close_chat_receiver()
         self._channel.close()
         self._channel = None
         self._stub = None
         self._is_connected = False
         logging.info("Disconnected")
 
-    def _close_stream_receiver(self) -> None:
+    def _close_chat_receiver(self) -> None:
+        """Closes chat receiver.
+        """
         if self._receiver is None:
             return
         self._receiver.s_stop()

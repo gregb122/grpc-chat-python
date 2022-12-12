@@ -14,55 +14,40 @@ from helpers.messages_handler_v2 import EtcdMessagesHandler
 class ChatServer(chat_pb2_grpc.ChatServiceServicer):
     """A class to represent a server object.
 
-    Methods
-    -------
-    GetAllUsers():
-        Returns registered users enpoint
-    SendMessage():
-        Send message to user endpoint
-    RecieveMessages():
-        Connect listener endpoint
+    Args:
+        chat_pb2_grpc: Protobuf grpc auto generated class.
     """
-
     def __init__(self) -> None:
+        """Constructs chat server object, connect and gets client ETCD object.
+        """
         self.etcd_client = etcd.Client(host="172.28.0.2", port=2379, protocol="http")
 
 
     def GetAllUsers(self, request, context) -> chat_pb2.GetAllUsersReply:
-        """Get registred users.
+        """Gets registred users.
 
-        Parameters
-        ----------
-        request : chat_bp2.GetAllUsersRequest
-            Request defined in chat.proto file
-        context : grpc context
+        Args:
+            request: Request defined in chat.proto file.
+            context: grpc context.
 
-        Returns
-        -------
-        chat_pb2.GetAllUsersReply
-            Reply defined in chat.proto file
+        Returns:
+            chat_pb2.GetAllUsersReply: Reply defined in chat.proto file.
         """
         logging.info("List all registred users")
         return chat_pb2.GetAllUsersReply(users=self.users_list)
 
     def SendMessage(self, request, context) -> chat_pb2.SendMessageReply:
-        """Send message to user.
+        """Sends message to user.
 
-        Parameters
-        ----------
-        request : chat_bp2.SendMessageRequest
-            Request defined in chat.proto file
-        context : grpc context
+        Args:
+            request: Request defined in chat.proto file.
+            context: Grpc context.
 
-        Returns
-        -------
-        chat_pb2.SendMessageReply
-            Reply defined in chat.proto file
+        Returns:
+            chat_pb2.SendMessageReply: Reply defined in chat.proto file.
 
-        Grpc_errors
-        -------
-        grpc.StatusCode.NOT_FOUND
-            When user to send message doesn't exist
+        Raises grpc_error:
+            grpc.StatusCode.NOT_FOUND: Raised when user to send message doesn't exist.
         """
         to_user = request.message.to_user_login
         from_user = request.message.from_user_login
@@ -80,28 +65,25 @@ class ChatServer(chat_pb2_grpc.ChatServiceServicer):
         return chat_pb2.SendMessageReply()
 
     def RecieveMessages(self, request, context) -> chat_pb2.RecieveMessagesReply:
-        """Receive messages to user.
-
+        """Receives messages to user.
+        
         When connection is active, takes messege from users queue and yield it
         till connected client get it.
 
         Also every 30 seconds yield empty message to help sinchronize client with server.
 
-        Parameters
-        ----------
-        request : chat_bp2.RecieveMessagesRequest
-            Request defined in chat.proto file
-        context : grpc context
+        Args:
+            request: Request defined in chat.proto file.
+            context: grpc context.
 
-        Returns
-        -------
-        chat_pb2.RecieveMessagesReply
-            Reply defined in chat.proto file
+        Returns:
+            chat_pb2.RecieveMessagesReply: Reply defined in chat.proto file.
 
-        Grpc_errors
-        -------
-        grpc.StatusCode.UNAUTHENTICATED
-            When user who want to listen doesn't exist
+        Yields:
+            Iterator[chat_pb2.RecieveMessagesReply]: Iterate on reply defined in chat.proto file.
+        
+        Raises grpc_error
+            grpc.StatusCode.UNAUTHENTICATED: When user who want to listen doesn't exist.
         """
         stream_to_user = request.to_user_login
         try:
@@ -141,11 +123,20 @@ class ChatServer(chat_pb2_grpc.ChatServiceServicer):
                         message.body.body,
                     )
                     yield chat_pb2.RecieveMessagesReply(message=message)
-                handler.delete_and_store_sent_messages(response)
+                handler.store_and_delete_sent_messages(response)
         logging.info("Stream to user %s ended", stream_to_user)
         return chat_pb2.RecieveMessagesReply()
 
     def RegisterUser(self, request, context) -> chat_pb2.RegisterUserReply:
+        """Registers user
+
+        Args:
+            request: Request defined in chat.proto file.
+            context: grpc context.
+            
+        Returns:
+            chat_pb2.RegisterUserReply: Protobuf reply defined in chat.proto file.
+        """
         auth = UserAuth(self.etcd_client)
         try:
             auth.register_user(request)
@@ -159,6 +150,15 @@ class ChatServer(chat_pb2_grpc.ChatServiceServicer):
             return chat_pb2.RegisterUserReply()
     
     def LoginUser(self, request, context) -> chat_pb2.LoginUserReply:
+        """Logins user.
+
+        Args:
+            request: Request defined in chat.proto file.
+            context: grpc context.
+
+        Returns:
+            chat_pb2.LoginUserReply: Protobuf reply defined in chat.proto file.
+        """
         auth = UserAuth(self.etcd_client)
         try:
             auth.login_user(request)
