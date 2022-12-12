@@ -42,8 +42,9 @@ class ChatReceiver(threading.Thread):
                     logging.debug("Stream canceled by server...")
                 elif rpc_error.code() == grpc.StatusCode.UNAVAILABLE:
                     logging.debug("Server unavaible...")
+                else: 
+                    raise
                 self.s_stop()
-                logging.error(rpc_error)
                 return
             else:
                 if response.HasField("message"):

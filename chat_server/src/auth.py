@@ -1,4 +1,5 @@
 import logging
+from typing import List
 
 import etcd
 from google.protobuf.json_format import MessageToJson, Parse
@@ -37,13 +38,14 @@ class UserAuth():
         try:
             self.client.write(f"/users/{login}", None, dir=True, prevExist=False)
         except etcd.EtcdAlreadyExist:
-            raise KeyError("User %s already registered", user)
+            raise KeyError(f"User {login} already registered")
         timestamp = Timestamp()
         timestamp.GetCurrentTime()
-        user_info = chat_pb2.EtcdUserInfo(user_info=user.user_info,
+        info = chat_pb2.UserInfo(login=user.user_info.login, full_name=user.user_info.full_name)
+        user_info = chat_pb2.EtcdUserInfo(user_info=info,
                                           is_active=True,
                                           hashed_password=Hash.bcrypt(user.password),
-                                          register_timestamp=timestamp.ToJsonString)
+                                          register_timestamp=timestamp.ToJsonString())
         self.client.write(f"/users/{login}/user_info", MessageToJson(user_info), prevExist=False)
         logging.info("User %s registered successfully!", user)
 
@@ -60,10 +62,25 @@ class UserAuth():
         try:
             res = self.client.read(f"/users/{login}/user_info")
         except etcd.EtcdKeyNotFound:
-            raise KeyError("Login %s failed", login)
-        user_res: chat_pb2.EtcdUserInfo = Parse(res.value, chat_pb2.EtcdUserInfo)
-        if Hash.verify(hashed_password=user_res.user_info.hashed_password, 
+            raise KeyError(f"Login {login} failed")
+        user_res: chat_pb2.EtcdUserInfo = Parse(res.value, chat_pb2.EtcdUserInfo())
+        if Hash.verify(hashed_password=user_res.hashed_password, 
                        plain_password=user.password):
-            logging.info("User %s logged in successfully!", user)
+            logging.info("User %s logged in successfully!", login)
         else:
-            raise KeyError("Login %s failed", login)
+            raise KeyError(f"Login {login} failed")
+
+    def list_registered_users(self) -> List[chat_pb2.UserInfo]:
+        """Returns all registers users.
+        
+        returns:
+            List[chat_pb.UserInfo]: List of user info protobufs
+        """     
+        res = self.client.read(f"/users", sorted=True)
+
+        ret_list = []
+        for lf in res.leaves:
+            logging.info(lf.key)
+            ret_list.append(Parse(self.client.read(lf.key + "/user_info").value, 
+                                  chat_pb2.EtcdUserInfo()).user_info)
+        return ret_list

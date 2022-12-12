@@ -23,7 +23,7 @@ class ChatServer(chat_pb2_grpc.ChatServiceServicer):
         self.etcd_client = etcd.Client(host="172.28.0.2", port=2379, protocol="http")
 
 
-    def GetAllUsers(self, request, context) -> chat_pb2.GetAllUsersReply:
+    def GetAllUsers(self, request: chat_pb2.GetAllUsersRequest, context) -> chat_pb2.GetAllUsersReply:
         """Gets registred users.
 
         Args:
@@ -33,10 +33,11 @@ class ChatServer(chat_pb2_grpc.ChatServiceServicer):
         Returns:
             chat_pb2.GetAllUsersReply: Reply defined in chat.proto file.
         """
-        logging.info("List all registred users")
-        return chat_pb2.GetAllUsersReply(users=self.users_list)
+        logging.info("List all registred users: ")
+        users_handler = UserAuth(self.etcd_client)
+        return chat_pb2.GetAllUsersReply(users=users_handler.list_registered_users())
 
-    def SendMessage(self, request, context) -> chat_pb2.SendMessageReply:
+    def SendMessage(self, request: chat_pb2.SendMessageRequest, context) -> chat_pb2.SendMessageReply:
         """Sends message to user.
 
         Args:
@@ -64,7 +65,7 @@ class ChatServer(chat_pb2_grpc.ChatServiceServicer):
         logging.debug(f"Message added to queue for user: {to_user}")
         return chat_pb2.SendMessageReply()
 
-    def RecieveMessages(self, request, context) -> chat_pb2.RecieveMessagesReply:
+    def RecieveMessages(self, request: chat_pb2.RecieveMessagesRequest, context) -> chat_pb2.RecieveMessagesReply:
         """Receives messages to user.
         
         When connection is active, takes messege from users queue and yield it
@@ -127,7 +128,7 @@ class ChatServer(chat_pb2_grpc.ChatServiceServicer):
         logging.info("Stream to user %s ended", stream_to_user)
         return chat_pb2.RecieveMessagesReply()
 
-    def RegisterUser(self, request, context) -> chat_pb2.RegisterUserReply:
+    def RegisterUser(self, request: chat_pb2.RegisterUserRequest, context) -> chat_pb2.RegisterUserReply:
         """Registers user
 
         Args:
@@ -143,13 +144,13 @@ class ChatServer(chat_pb2_grpc.ChatServiceServicer):
         except KeyError as e:
             context.abort(
                 grpc.StatusCode.ALREADY_EXISTS,
-                e,
+                f"User {request.user_info.login} is already registred",
             )
             return chat_pb2.RegisterUserReply()
         else:
             return chat_pb2.RegisterUserReply()
     
-    def LoginUser(self, request, context) -> chat_pb2.LoginUserReply:
+    def LoginUser(self, request: chat_pb2.LoginUserRequest, context) -> chat_pb2.LoginUserReply:
         """Logins user.
 
         Args:
@@ -165,7 +166,7 @@ class ChatServer(chat_pb2_grpc.ChatServiceServicer):
         except KeyError as e:
             context.abort(
                 grpc.StatusCode.UNAUTHENTICATED,
-                e,
+                f"Login for user {request.login} failed",
             )
             return chat_pb2.LoginUserReply()
         else:

@@ -42,11 +42,39 @@ class ChatClient:
             self._handle_login()
         except ConnectionRefusedError as e:
             logging.error("Cannot connect [%s]", e)
+            self.disconnect()
         else:
             self._is_connected = True
             logging.info("Chat client connected")
-        finally:
-            self.disconnect()
+
+    def _handle_register(self) -> None:
+        """Handles user register, takes username, full name and password from user.
+        User have 3 chances to input valid password.
+
+        Raises:
+            rpc_error: Raised when error type was not expected.
+        """
+        if input("Do you want to register first? yes/[no]").strip().lower() in ["y", "yes"]:
+            username = self._get_username()
+            full_name = input("Full name:").strip()
+            password = getpass()
+            req = chat_pb2.RegisterUserRequest(user_info=chat_pb2.UserInfo(login=username,
+                                                                           full_name=full_name),
+                                               password=password)
+            try:
+                self._stub.RegisterUser(request=req)
+            except grpc.RpcError as rpc_error:
+                if rpc_error.code() == grpc.StatusCode.ALREADY_EXISTS:
+                    logging.info("User %s already exists...", username)
+                elif rpc_error.code() == grpc.StatusCode.UNAVAILABLE:
+                    logging.debug("Server unavaible...")
+                else:
+                    raise rpc_error
+            else:
+                logging.info("User %s registered successfully", username)
+                return
+        else:
+            return
             
     def _handle_login(self) -> None:
         """Handles user login, user is asked to provide username and password.
@@ -64,7 +92,10 @@ class ChatClient:
                                                                        password=password))
             except grpc.RpcError as rpc_error:
                 if rpc_error.code() == grpc.StatusCode.UNAUTHENTICATED:
-                    logging.info("Login failed, username: s%", username)
+                    logging.info("Login failed, username: %s", username)
+                elif rpc_error.code() == grpc.StatusCode.UNAVAILABLE:
+                    logging.debug("Server unavaible...")
+                    break
                 else:
                     raise rpc_error
             else:
@@ -96,33 +127,6 @@ class ChatClient:
         self._open_chat_receiver()
         self._start_chat()
         self._close_chat_receiver()
-        
-    def _handle_register(self) -> None:
-        """Handles user register, takes username, full name and password from user.
-        User have 3 chances to input valid password.
-
-        Raises:
-            rpc_error: Raised when error type was not expected.
-        """
-        if input("Do you want to register first? yes/[no]").strip().lower() in ["y", "yes"]:
-            username = self._get_username()
-            full_name = input("Full name:").strip()
-            password = getpass()
-            req = chat_pb2.RegisterUserRequest(user_info=chat_pb2.UserInfo(login=username,
-                                                                           full_name=full_name),
-                                               password=password)
-            try:
-                self._stub.RegisterUser(request=req)
-            except grpc.RpcError as rpc_error:
-                if rpc_error.code() == grpc.StatusCode.ALREADY_EXISTS:
-                    logging.info("User %s already exists...", username)
-                else:
-                    raise rpc_error
-            else:
-                logging.info("User %s registered successfully", username)
-                return
-        else:
-            return
     
     def _log_registred_users(self) -> None:
         """Logges registred users.
@@ -195,6 +199,11 @@ class ChatClient:
                     logging.info("User [%s] not found", user)
                     self._log_registred_users()
                     break
+                elif rpc_error.code() == grpc.StatusCode.UNAVAILABLE:
+                    logging.debug("Server unavaible...")
+                    break
+                else:
+                    raise
 
     def _create_message(
         self, user: str, text_to_send: str, timestamp: Timestamp
