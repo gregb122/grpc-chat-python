@@ -8,11 +8,19 @@ import protobufs.chat_pb2 as chat_pb2
 
 class ChatReceiver(threading.Thread):
     """Thread class which listen for incomming messages till stop(). The thread itself has to check
-    regularly for the stopped() and set unauth condition on rpc_error UNAUTHENTICATED."""
+    regularly for the stopped() and set unauth condition on rpc_error UNAUTHENTICATED.
+    """
 
     def __init__(
         self, response_iterator: Iterator[chat_pb2.RecieveMessagesReply]
     ) -> None:
+        """Initialize chat receiver.
+
+        Args:
+            response_iterator (Iterator[chat_pb2.RecieveMessagesReply]):
+                Response stream returned by stub RecieveMessages(1).
+
+        """
         super(ChatReceiver, self).__init__()
         self._stop_event = threading.Event()
         self._unauth_event = threading.Event()
@@ -20,7 +28,7 @@ class ChatReceiver(threading.Thread):
         logging.basicConfig(format="%(message)s", level=logging.DEBUG)
 
     def run(self) -> None:
-        """Run receiver and listen for messages on response iterator"""
+        """Run receiver and listen for messages on response iterator."""
         logging.debug("Stream started on another thread...")
         while not self.is_stopped():
             try:
@@ -34,8 +42,9 @@ class ChatReceiver(threading.Thread):
                     logging.debug("Stream canceled by server...")
                 elif rpc_error.code() == grpc.StatusCode.UNAVAILABLE:
                     logging.debug("Server unavaible...")
+                else:
+                    raise
                 self.s_stop()
-                logging.error(rpc_error)
                 return
             else:
                 if response.HasField("message"):
@@ -50,11 +59,22 @@ class ChatReceiver(threading.Thread):
         logging.debug("Stream canceled because user closed...")
         self.s_stop()
 
-    def s_stop(self):
+    def s_stop(self) -> None:
+        """Set stop event flag."""
         self._stop_event.set()
 
-    def is_stopped(self):
+    def is_stopped(self) -> bool:
+        """Checks stop event flag.
+
+        Returns:
+            bool: true if stop flag is set.
+        """
         return self._stop_event.is_set()
 
-    def is_unauth(self):
+    def is_unauth(self) -> bool:
+        """Checks if unauth event flag is set.
+
+        Returns:
+            bool: true if unauth flag is set.
+        """
         return self._unauth_event.is_set()

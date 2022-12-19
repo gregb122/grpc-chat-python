@@ -1,0 +1,28 @@
+version: "3.8"
+services:
+
+    chat_service:
+        build:
+            context: ./chat_server
+            dockerfile: Dockerfile
+        image: chat_server
+        volumes: 
+            - ./chat_server/src:/chat_server/src
+        ports:
+            - 50051:50051
+        networks:
+            - chat_network
+
+    chat_etcd:
+        image: wolfdeng/etcd2-docker
+        ports:
+          - 2379:2379
+          - 2380:2380
+          - 4001:4001
+          - 7001:7001
+        expose:
+          - 2379
+        networks:
+          - chat_network
+networks:
+    chat_network:

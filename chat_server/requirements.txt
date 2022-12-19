@@ -1,0 +1,6 @@
+grpcio==1.51.1
+passlib==1.7.4
+protobuf==4.21.11
+python_etcd==0.4.5
+urllib3==1.26.13
+bcrypt==4.0.1
