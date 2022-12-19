@@ -44,7 +44,8 @@ class UserAuth:
         timestamp = Timestamp()
         timestamp.GetCurrentTime()
         info = chat_pb2.UserInfo(
-            login=user.user_info.login, full_name=user.user_info.full_name
+            login=user.user_info.login,
+            full_name=user.user_info.full_name,
         )
         user_info = chat_pb2.EtcdUserInfo(
             user_info=info,

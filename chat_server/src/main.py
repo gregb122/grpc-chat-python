@@ -21,7 +21,9 @@ class ChatServer(chat_pb2_grpc.ChatServiceServicer):
     def __init__(self) -> None:
         """Constructs chat server object, connect and gets client ETCD object."""
         self.etcd_client = etcd.Client(
-            host="172.28.0.2", port=2379, protocol="http"
+            host="172.28.0.2",
+            port=2379,
+            protocol="http",
         )
 
     def GetAllUsers(
@@ -61,10 +63,12 @@ class ChatServer(chat_pb2_grpc.ChatServiceServicer):
         from_user = request.message.from_user_login
         try:
             handler_to_send = EtcdMessagesHandler(
-                client=self.etcd_client, to_user=to_user
+                client=self.etcd_client,
+                to_user=to_user,
             )
             handler_to_store = EtcdMessagesHandler(
-                client=self.etcd_client, to_user=from_user
+                client=self.etcd_client,
+                to_user=from_user,
             )
 
         except KeyError as e:
@@ -73,10 +77,12 @@ class ChatServer(chat_pb2_grpc.ChatServiceServicer):
             )
             return chat_pb2.SendMessageReply()
         handler_to_send.add_message_to_queue(
-            to_send_queue=True, value=MessageToJson(request.message)
+            to_send_queue=True,
+            value=MessageToJson(request.message),
         )
         handler_to_store.add_message_to_queue(
-            to_send_queue=False, value=MessageToJson(request.message)
+            to_send_queue=False,
+            value=MessageToJson(request.message),
         )
 
         logging.debug(f"Message added to queue for user: {to_user}")
@@ -108,7 +114,8 @@ class ChatServer(chat_pb2_grpc.ChatServiceServicer):
         stream_to_user = request.to_user_login
         try:
             handler = EtcdMessagesHandler(
-                client=self.etcd_client, to_user=stream_to_user
+                client=self.etcd_client,
+                to_user=stream_to_user,
             )
         except KeyError as e:
             context.abort(
@@ -118,15 +125,20 @@ class ChatServer(chat_pb2_grpc.ChatServiceServicer):
             return chat_pb2.RecieveMessagesReply()
 
         response = handler.get_elems_from_queue(
-            from_send_queue=False, get_all=True
+            from_send_queue=False,
+            get_all=True,
         )
         for _, elem in response[-10:]:
             message = Parse(elem, chat_pb2.Message())
             yield chat_pb2.RecieveMessagesReply(message=message)
-        logging.debug("[10 messeges from previous session restored]")
+        logging.debug(
+            "10 messeges for user %s from previous session restored",
+            stream_to_user,
+        )
         while context.is_active():
             response = handler.get_elems_from_queue(
-                from_send_queue=True, get_all=True
+                from_send_queue=True,
+                get_all=True,
             )
             if not response:
                 response = handler.get_elems_from_queue(

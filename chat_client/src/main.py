@@ -56,12 +56,13 @@ class ChatClient:
         if input(
             "Do you want to register first? yes/[no]"
         ).strip().lower() in ["y", "yes"]:
-            username = self._get_username()
+            username = self._ask_username()
             full_name = input("Full name:").strip()
             password = getpass()
             req = chat_pb2.RegisterUserRequest(
                 user_info=chat_pb2.UserInfo(
-                    login=username, full_name=full_name
+                    login=username,
+                    full_name=full_name,
                 ),
                 password=password,
             )
@@ -88,13 +89,14 @@ class ChatClient:
             rpc_error: Raised when error type was not expected.
             ConnectionRefusedError: Raised when user provide wrong creds 3 times.
         """
-        username = self._get_username()
+        username = self._ask_username()
         for _ in range(3):
             password = getpass()
             try:
                 self._stub.LoginUser(
                     request=chat_pb2.LoginUserRequest(
-                        login=username, password=password
+                        login=username,
+                        password=password,
                     )
                 )
             except grpc.RpcError as rpc_error:
@@ -110,7 +112,7 @@ class ChatClient:
                 return
         raise ConnectionRefusedError("Login failed")
 
-    def _get_username(self) -> str:
+    def _ask_username(self) -> str:
         """Reads username from user.
 
         Returns:
