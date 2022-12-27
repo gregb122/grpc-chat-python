@@ -1,13 +1,11 @@
 import logging
-
-import grpc
-import protobufs.chat_pb2 as chat_pb2
-import protobufs.chat_pb2_grpc as chat_pb2_grpc
-from google.protobuf.timestamp_pb2 import Timestamp
 from getpass import getpass
 
-
 import chat_receiver
+import grpc
+from google.protobuf.timestamp_pb2 import Timestamp
+
+from common import chat_pb2, chat_pb2_grpc
 
 
 class ChatClient:

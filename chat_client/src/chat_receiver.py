@@ -3,7 +3,7 @@ import threading
 from typing import Iterator
 
 import grpc
-import protobufs.chat_pb2 as chat_pb2
+from common import chat_pb2
 
 
 class ChatReceiver(threading.Thread):

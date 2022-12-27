@@ -4,11 +4,12 @@ from typing import Dict, List
 
 import etcd
 import grpc
-import protobufs.chat_pb2 as chat_pb2
-import protobufs.chat_pb2_grpc as chat_pb2_grpc
 from google.protobuf.json_format import MessageToJson, Parse
-from auth import UserAuth
-from helpers.messages_handler_v2 import EtcdMessagesHandler
+
+from common import chat_pb2, chat_pb2_grpc
+
+from .auth import UserAuth
+from .helpers.messages_handler_v2 import EtcdMessagesHandler
 
 
 class ChatServer(chat_pb2_grpc.ChatServiceServicer):

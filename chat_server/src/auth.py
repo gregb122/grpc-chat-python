@@ -4,9 +4,10 @@ from typing import List
 import etcd
 from google.protobuf.json_format import MessageToJson, Parse
 from google.protobuf.timestamp_pb2 import Timestamp
-from helpers.hash import Hash
 
-import protobufs.chat_pb2 as chat_pb2
+from common import chat_pb2
+
+from .helpers.hash import Hash
 
 
 class UserAuth:
