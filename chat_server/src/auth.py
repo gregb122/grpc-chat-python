@@ -7,7 +7,7 @@ from google.protobuf.timestamp_pb2 import Timestamp
 
 from common import chat_pb2
 
-from .helpers.hash import Hash
+from helpers.hash import Hash
 
 
 class UserAuth:

@@ -88,3 +88,9 @@ _build/
 **/.classpath
 
 .cache
+
+# Vertual environments
+/venv
+
+# Unittests
+.coverage
