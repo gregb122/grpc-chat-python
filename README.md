@@ -4,10 +4,10 @@
 
 ## Contents
 
-* [You can...](#you-can)
-* [Installation](#installation)
+* [You can](#you-can)
 * [Technology stack](#technology-stack)
 * [Requirements](#requirements)
+* [Installation](#installation)
 * [Server deployment](#server-deployment)
 * [Client usage](#client-usage)
 
@@ -17,21 +17,10 @@
 * [x] Send messages to other users
 * [x] Get messages from many users at once
 * [x] Get history of messages (Everyone have their own session)
-* [x] Send messages to user even if he is offline.
+* [x] Send messages to user even if he is offline
 * [x] Catch up with messages after login
 
 `gRPC terminal chat` is the only tool that you need for **human interacions**.
-
-## Installation
-
-> **Warning**
-> Writing to your friends about your secrets and wet dreams could be foolish, Security wasn't addressed yet. :triangular_flag_on_post:
-
-### Get source
-
-```sh
-git clone https://github.com/Gregb122/grpc-terminal-chat.
-```
 
 ## Technology stack
 
@@ -46,6 +35,31 @@ git clone https://github.com/Gregb122/grpc-terminal-chat.
 
 * **grpcio-tools** 1.51.1
 * **python libs** defined in requirements.txt files
+
+## Installation
+
+> **Warning**
+> Writing to your friends about your secrets and wet dreams could be foolish, Security wasn't addressed yet. :triangular_flag_on_post:
+
+### Get source
+
+```sh
+git clone https://github.com/Gregb122/grpc-terminal-chat.git
+```
+
+### How generate python protobuf files for server and client
+
+Install grpc-tools to generate code from proto files
+
+```sh
+pip install grpcio-tools
+```
+
+and then in a root directory of the project:
+
+```sh
+python3 -m grpc_tools.protoc -I protobufs --python_out=. --pyi_out=. --grpc_python_out=. protobufs/common/*.proto
+```
 
 ## Server deployment
 
@@ -64,27 +78,17 @@ then ctivate:
 source python_3.8_virtualenv/bin/activate
 ```
 
-### How generate python protobuf files for server
-
-Install grpc-tools to generate code from proto files
-
-```sh
-pip intall grpcio-tools
-```
-
-and then:
-
-```sh
-python3 -m grpc_tools.protoc -I. --python_out=chat_server/src --pyi_out=chat_server/src --grpc_python_out=chat_server/src protobufs/chat.proto
-```
-
 ### How to run serwer localy
 
 Run etcd2, you can do this with docker:
 
 ```sh
 docker run --name etcd2 -d -p 2379:2379 -p 2380:2380 -p 4001:4001 -p 7001:7001 -v ~/temp/data0/etcd:/data wolfdeng/etcd2-docker
+```
 
+And to check if ETCD instance is running:
+
+```sh
 etcdctl --endpoints=http://<ip_of_etcd:2379> ls
 
 ```
@@ -98,7 +102,7 @@ pip install -r chat_server/requirements.txt
 **run server:**
 
 ```sh
-python3 chat_server/src/main.py
+python3 -m chat_server.src.main
 ```
 
 ### Docker compose
@@ -108,20 +112,6 @@ docker-compose -f "docker_compose.yml" up
 ```
 
 ## Client usage
-
-### How generate python protobuf files for client
-
-Remember to install grpc-tools to generate code from proto files
-
-```sh
-pip intall grpcio-tools
-```
-
-and then:
-
-```sh
-python3 -m grpc_tools.protoc -I. --python_out=chat_client/src --pyi_out=chat_client/src --grpc_python_out=chat_client/src protobufs/chat.proto
-```
 
 ### How to run client
 
@@ -134,7 +124,7 @@ pip install -r chat_client/requirements.txt
 To start the interactive program with default args, simply run:
 
 ```sh
-python3 chat_client/src/main.py
+python3 -m chat_client.src.main
 ```
 
 ---
