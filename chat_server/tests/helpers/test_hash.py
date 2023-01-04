@@ -1,19 +1,28 @@
 import unittest
-import logging
+from unittest.mock import Mock
 
-from ...src.helpers.hash import Hash
+from chat_server.src.helpers.hash import Hash
 
 class TestUserAuth(unittest.TestCase):
     
     def test_bcrypt(self):
-        res = Hash.bcrypt("123456789xD")
-        self.assertIsInstance(res, str)
-        self.assertTrue(res)
+        Hash.pwd_ctx = Mock(
+            hash=Mock(
+                return_value="hashed"
+            )
+        )
+        res = Hash.bcrypt("plain")
+        self.assertEqual(res, "hashed")
+        Hash.pwd_ctx.hash.assert_called_once()
     
     def test_verify(self):
-        res = Hash.bcrypt("123456789xD")
-        self.assertTrue(
-            Hash.verify(res, "123456789xD"))
-
+        Hash.pwd_ctx = Mock(
+            verify=Mock(
+                return_value=True
+            )
+        )
+        res = Hash.verify("hashed", "plain")
+        self.assertTrue(res)
+        Hash.pwd_ctx.verify.assert_called_once()
 if __name__ == '__main__':
     unittest.main()

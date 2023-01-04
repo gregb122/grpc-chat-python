@@ -85,9 +85,10 @@ class EtcdMessagesHandler:
         leaf = next(res.leaves)
         if leaf is res:
             return []
+        first_elem = (leaf.key, leaf.value)
         if get_all:
-            return [(lf.key, lf.value) for lf in res.leaves]
-        return [(leaf.key, leaf.value)]
+            return [first_elem] + ([(lf.key, lf.value) for lf in res.leaves])
+        return [first_elem]
 
     def store_and_delete_sent_messages(
         self, list_msg: List[Tuple[str, str]]
