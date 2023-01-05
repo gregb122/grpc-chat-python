@@ -130,3 +130,34 @@ python3 -m chat_client.src.main
 ---
 
 `grpc-terminal-chat` was built with terminal in mind. You often can quit current scope by typing **/q**. Remember to register before login.
+
+## Tests and coverage
+
+```sh
+pip install coverage && pip install pytest
+```
+
+To erase old coverage raport run:
+
+```sh
+coverage erase
+```
+
+Run tests, generate pytest-raprort.xml and coverage
+
+```sh
+coverage run --branch --source=. -m unittest discover && python -m pytest --junitxml=pytest-report.xml chat_*/tests/
+```
+
+Generate coverage.xml, you can use it later in sonnarcube
+
+```sh
+coverage xml -i
+```
+
+or
+
+```sh
+coverage html -i
+```
+

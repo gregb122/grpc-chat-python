@@ -88,3 +88,12 @@ _build/
 **/.classpath
 
 .cache
+
+/venv
+/coverage-reports
+
+# Unittests
+.coverage
+.scannerwork
+coverage.xml
+pytest-report.xml

@@ -15,7 +15,7 @@ class UserAuthTestCase(unittest.TestCase):
         self._sent_str = f"/users/user/sent_queue"
 
     def test_init(self):
-        """Tests chat_server.src.messages_handler_v2.__init__() method."""
+        """Tests chat_server.src.helpers.messages_handler_v2.__init__() method."""
         read_mock = Mock()        
         write_mock = Mock()
         _client = Mock(read=read_mock, write=write_mock)
@@ -25,7 +25,7 @@ class UserAuthTestCase(unittest.TestCase):
         write_mock.call_count = 2
 
     def test_init_etcd_key_not_found(self):
-        """Tests chat_server.src.messages_handler_v2.__init__() method."""
+        """Tests chat_server.src.helpers.messages_handler_v2.__init__() method."""
         read_mock = Mock(
             side_effect=etcd.EtcdKeyNotFound(
                 message="Peace is a lie",
@@ -39,7 +39,7 @@ class UserAuthTestCase(unittest.TestCase):
             EtcdMessagesHandler.__init__(Mock(), _client, "nonexistetd_user")
         self.assertIn("User not found", str(context.exception))
 
-    @patch("chat_server.src.messages_handler_v2.logging")
+    @patch("chat_server.src.helpers.messages_handler_v2.logging")
     def test_init_etcd_already_exist(self, _logging: Mock):
         """Tests chat_server.src.messages_handler_v2.__init__() method."""
         read_mock = Mock()
@@ -81,7 +81,7 @@ class UserAuthTestCase(unittest.TestCase):
         )
     
     def test_get_elems_from_queue_to_send(self):
-        """Tests chat_server.src.messages_handler_v2.login_user() method."""
+        """Tests chat_server.src.helpers.messages_handler_v2.login_user() method."""
         _read = Mock(
             return_value=Mock(
                 leaves=iter([Mock(key="000", value="Message0"), 
@@ -104,7 +104,7 @@ class UserAuthTestCase(unittest.TestCase):
         )
 
     def test_get_elems_from_queue_sent(self):
-        """Tests chat_server.src.messages_handler_v2.login_user() method."""
+        """Tests chat_server.src.helpers.messages_handler_v2.login_user() method."""
         _read = Mock(
             return_value=Mock(
                 leaves=iter([Mock(key="000", value="Message0"), 
@@ -127,7 +127,7 @@ class UserAuthTestCase(unittest.TestCase):
         )
         
     def test_get_all_elems_from_queue_to_send(self):
-        """Tests chat_server.src.messages_handler_v2.login_user() method."""
+        """Tests chat_server.src.helpers.messages_handler_v2.login_user() method."""
         _read = Mock(
             return_value=Mock(
                 leaves=iter([
@@ -152,7 +152,7 @@ class UserAuthTestCase(unittest.TestCase):
         )
 
     def test_get_elems_from_queue_to_send_exception(self):
-        """Tests chat_server.src.messages_handler_v2.login_user() method."""
+        """Tests chat_server.src.helpers.messages_handler_v2.login_user() method."""
         _read = Mock(
             side_effect=Exception()
         )
@@ -164,7 +164,7 @@ class UserAuthTestCase(unittest.TestCase):
         )
 
     def test_store_and_delete_sent_message(self):
-        """Tests chat_server.src.messages_handler_v2.login_user() method."""
+        """Tests chat_server.src.helpers.messages_handler_v2.login_user() method."""
         _write = Mock()
         self.client.write = _write
         
