@@ -10,6 +10,7 @@
 * [Installation](#installation)
 * [Server deployment](#server-deployment)
 * [Client usage](#client-usage)
+* [Development](#development)
 
 ## You can
 
@@ -131,33 +132,43 @@ python3 -m chat_client.src.main
 
 `grpc-terminal-chat` was built with terminal in mind. You often can quit current scope by typing **/q**. Remember to register before login.
 
-## Tests and coverage
+## Development
+
+### Tox
 
 ```sh
-pip install coverage && pip install pytest
+pip install tox
 ```
 
-To erase old coverage raport run:
+Run tests and code coverage
 
 ```sh
-coverage erase
+tox -e py
 ```
 
-Run tests, generate pytest-raprort.xml and coverage
-
-```sh
-coverage run --branch --source=. -m unittest discover && python -m pytest --junitxml=pytest-report.xml chat_*/tests/
-```
-
-Generate coverage.xml, you can use it later in sonnarcube
-
-```sh
-coverage xml -i
-```
-
-or
+You can generate html file from coverage raport
 
 ```sh
 coverage html -i
 ```
 
+### SonarQube
+
+You can use SonarQube, to install follow official docs:
+> https://docs.sonarqube.org/latest/
+
+Set project-key to:
+> grpc-terminal-chat
+
+After project creation set up env variables
+
+```sh
+export SONAR_RUN_HOST_URL=<server url:port>
+export SONAR_RUN_LOGIN=<server token>
+```
+
+Then, just run:
+
+```sh
+sonar-scanner
+```
