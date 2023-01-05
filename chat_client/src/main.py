@@ -1,10 +1,10 @@
 import logging
 from getpass import getpass
 
-import chat_receiver
 import grpc
 from google.protobuf.timestamp_pb2 import Timestamp
 
+from chat_client.src.chat_receiver import ChatReceiver
 from common import chat_pb2, chat_pb2_grpc
 
 

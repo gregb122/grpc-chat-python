@@ -1,6 +1,6 @@
 import unittest
 
-from ..src import chat_receiver
+from chat_client.src.chat_receiver import ChatReceiver
 from common import chat_pb2
 
 class TestUserAuth(unittest.TestCase):
