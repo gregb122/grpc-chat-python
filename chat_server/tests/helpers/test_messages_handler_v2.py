@@ -103,6 +103,24 @@ class UserAuthTestCase(unittest.TestCase):
                 timeout=None,
         )
 
+    def test_get_elems_from_queue_to_send_etcd_no_chilldren(self):
+        """Tests chat_server.src.helpers.messages_handler_v2.login_user() method."""
+        class responseMocked():
+            @property
+            def leaves(self):
+                return self
+            def __next__(self):
+                return self
+        _read = Mock(
+            return_value=responseMocked()
+        )
+        self.client.read = _read
+        
+        self.assertListEqual(
+            self.MessagesHandler.get_elems_from_queue(True),
+            []
+        )
+
     def test_get_elems_from_queue_sent(self):
         """Tests chat_server.src.helpers.messages_handler_v2.login_user() method."""
         _read = Mock(

@@ -155,7 +155,7 @@ coverage html -i
 ### SonarQube
 
 You can use SonarQube, to install follow official docs:
-> https://docs.sonarqube.org/latest/
+> <https://docs.sonarqube.org/latest/>
 
 Set project-key to:
 > grpc-terminal-chat

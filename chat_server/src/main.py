@@ -74,7 +74,7 @@ class ChatServer(chat_pb2_grpc.ChatServiceServicer):
 
         except KeyError as e:
             context.abort(
-                grpc.StatusCode.NOT_FOUND, f"User {to_user} is do not exist"
+                grpc.StatusCode.NOT_FOUND, f"User {to_user} not found"
             )
             return chat_pb2.SendMessageReply()
         handler_to_send.add_message_to_queue(

@@ -19,6 +19,19 @@ class UserAuthTestCase(unittest.TestCase):
         UserAuth.__init__(Mock(), _client)
         write_mock.assert_called_once()
 
+    @patch("chat_server.src.auth.logging")
+    def test_init_etcd_already_exist(self, _logging: Mock):
+        """Tests chat_server.src.auth.__init__() method."""
+        write_mock = Mock(
+            side_effect=etcd.EtcdAlreadyExist
+        )
+        _client = Mock(write=write_mock)
+
+        UserAuth.__init__(Mock(), _client)
+        write_mock.assert_called_once()
+        _logging.debug.assert_called_once()
+        
+
     @patch("chat_server.src.auth.Hash")
     @patch("chat_server.src.auth.logging")
     @patch("chat_server.src.auth.Parse")
@@ -31,7 +44,7 @@ class UserAuthTestCase(unittest.TestCase):
         parsed_etcd_user = Mock(hashed_password="Darth Angral")
         parse.return_value = parsed_etcd_user
         user = Mock(
-            user="Darth Vitiate",
+            login="Darth Vitiate",
             password="Darth Nox",
         )
 
@@ -44,6 +57,28 @@ class UserAuthTestCase(unittest.TestCase):
             plain_password="Darth Nox",
         )
         _logging.info.assert_called_once()
+
+    @patch("chat_server.src.auth.Hash")
+    @patch("chat_server.src.auth.logging")
+    @patch("chat_server.src.auth.Parse")
+    def test_login_user_wrong_password(self, parse: Mock, _logging: Mock,
+                        hash: Mock):
+        """Tests chat_server.src.auth.login_user() method with wrong password."""
+        _read = Mock()
+        self.client.read = _read
+
+        parsed_etcd_user = Mock(hashed_password="Darth Angral")
+        parse.return_value = parsed_etcd_user
+        user = Mock(
+            login="Darth Baras",
+            password="Darth Nox",
+        )
+
+        hash.verify.return_value = False
+
+        with self.assertRaises(KeyError) as context:
+            self.auth.login_user(user)
+        self.assertIn("Login Darth Baras failed", str(context.exception))
 
     def test_login_user_etcd_not_found(self):
         """Tests chat_server.src.auth.login_user() method (EtcdKeyNotFound)."""
@@ -93,12 +128,6 @@ class UserAuthTestCase(unittest.TestCase):
         
         timestamp.assert_called_once()
         messageToJson.assert_called_once()
-        # chat_pb2.EtcdUserInfo.assert_called_with(
-        #     user_info=chat_pb2.UserInfo.return_value,
-        #     is_active=True,
-        #     hashed_password=hash.bcrypt.return_value,
-        #     register_timestamp=timestamp.ToJsonString.return_value
-        # )
         
         self.client.write.assert_called_with(
             f"/users/Darth Vitiate/user_info",
