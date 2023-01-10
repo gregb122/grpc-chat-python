@@ -6,15 +6,19 @@ from chat_server.src.main import ChatServer
 
 class TestServerCalls(unittest.TestCase):
     @patch("chat_server.src.main.etcd")
-    def setUp(self, etcd: Mock) -> None:
+    @patch("chat_server.src.main.os")
+    def setUp(self, _os: Mock, etcd: Mock) -> None:
         self.etcd_client = Mock()
         etcd.Client.return_value = self.etcd_client 
         self.chat_server = ChatServer()
 
     @patch("chat_server.src.main.etcd")
-    def test_init(self, _etcd: Mock):
+    @patch("chat_server.src.main.os")
+    def test_init(self, _os: Mock, _etcd: Mock):
         """Tests chat_server.src.auth.__init__() method."""
-
+        _os.environ = {
+            "ETCD_SERVER_IP_ADDR":"172.28.0.2",
+        }
         ChatServer.__init__(Mock())
         _etcd.Client.assert_called_once_with(
             host="172.28.0.2",

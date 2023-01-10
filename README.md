@@ -102,6 +102,12 @@ pip install -r chat_server/requirements.txt
 
 **run server:**
 
+Set ip address of your ETCD server as env variable:
+
+```sh
+export ETCD_SERVER_IP_ADDR=<etcd server ip>
+```
+
 ```sh
 python3 -m chat_server.src.main
 ```

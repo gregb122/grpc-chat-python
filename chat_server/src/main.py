@@ -1,3 +1,4 @@
+import os
 import logging
 from concurrent import futures
 from typing import Dict, List
@@ -22,7 +23,7 @@ class ChatServer(chat_pb2_grpc.ChatServiceServicer):
     def __init__(self) -> None:
         """Constructs chat server object, connect and gets client ETCD object."""
         self.etcd_client = etcd.Client(
-            host="172.28.0.2",
+            host=os.environ["ETCD_SERVER_IP_ADDR"],
             port=2379,
             protocol="http",
         )
@@ -72,7 +73,7 @@ class ChatServer(chat_pb2_grpc.ChatServiceServicer):
                 to_user=from_user,
             )
 
-        except KeyError as e:
+        except KeyError:
             context.abort(
                 grpc.StatusCode.NOT_FOUND, f"User {to_user} not found"
             )
@@ -118,7 +119,7 @@ class ChatServer(chat_pb2_grpc.ChatServiceServicer):
                 client=self.etcd_client,
                 to_user=stream_to_user,
             )
-        except KeyError as e:
+        except KeyError:
             context.abort(
                 grpc.StatusCode.UNAUTHENTICATED,
                 f"User {stream_to_user} is not registred",
@@ -151,7 +152,7 @@ class ChatServer(chat_pb2_grpc.ChatServiceServicer):
                 if not response:
                     # Sometimes send empty message to synch client thread
                     logging.debug(
-                        "Timeout reached, sending synch message: [%s]"
+                        "Timeout reached, sending synch message"
                     )
                     yield chat_pb2.RecieveMessagesReply()
             else:
@@ -183,7 +184,7 @@ class ChatServer(chat_pb2_grpc.ChatServiceServicer):
         auth = UserAuth(self.etcd_client)
         try:
             auth.register_user(request)
-        except KeyError as e:
+        except KeyError:
             context.abort(
                 grpc.StatusCode.ALREADY_EXISTS,
                 f"User {request.user_info.login} is already registred",
@@ -207,7 +208,7 @@ class ChatServer(chat_pb2_grpc.ChatServiceServicer):
         auth = UserAuth(self.etcd_client)
         try:
             auth.login_user(request)
-        except KeyError as e:
+        except KeyError:
             context.abort(
                 grpc.StatusCode.UNAUTHENTICATED,
                 f"Login for user {request.login} failed",

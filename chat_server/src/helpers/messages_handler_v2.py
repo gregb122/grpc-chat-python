@@ -79,7 +79,7 @@ class EtcdMessagesHandler:
                 sorted=True,
                 timeout=timeout,
             )
-        except Exception as e:
+        except Exception:
             return []
 
         leaf = next(res.leaves)
