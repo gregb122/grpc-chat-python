@@ -1,14 +1,13 @@
 import logging
-
-import grpc
-import protobufs.chat_pb2 as chat_pb2
-import protobufs.chat_pb2_grpc as chat_pb2_grpc
-from google.protobuf.timestamp_pb2 import Timestamp
 from getpass import getpass
 
+import grpc
+from google.protobuf.timestamp_pb2 import Timestamp
 
-import chat_receiver
+from chat_client.src.chat_receiver import ChatReceiver
+from common import chat_pb2, chat_pb2_grpc
 
+UNAVAIBLE_MSG = "Server unavaible..."
 
 class ChatClient:
     """A class to represent a chat client object."""
@@ -72,7 +71,7 @@ class ChatClient:
                 if rpc_error.code() == grpc.StatusCode.ALREADY_EXISTS:
                     logging.info("User %s already exists...", username)
                 elif rpc_error.code() == grpc.StatusCode.UNAVAILABLE:
-                    logging.debug("Server unavaible...")
+                    logging.debug(UNAVAIBLE_MSG)
                 else:
                     raise rpc_error
             else:
@@ -103,7 +102,7 @@ class ChatClient:
                 if rpc_error.code() == grpc.StatusCode.UNAUTHENTICATED:
                     logging.info("Login failed, username: %s", username)
                 elif rpc_error.code() == grpc.StatusCode.UNAVAILABLE:
-                    logging.debug("Server unavaible...")
+                    logging.debug(UNAVAIBLE_MSG)
                     break
                 else:
                     raise rpc_error
@@ -211,7 +210,7 @@ class ChatClient:
                     self._log_registred_users()
                     break
                 elif rpc_error.code() == grpc.StatusCode.UNAVAILABLE:
-                    logging.debug("Server unavaible...")
+                    logging.debug(UNAVAIBLE_MSG)
                     break
                 else:
                     raise
