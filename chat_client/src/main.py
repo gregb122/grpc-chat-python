@@ -1,4 +1,5 @@
 import logging
+import os
 from getpass import getpass
 
 import grpc
@@ -159,7 +160,7 @@ class ChatClient:
         response_iterator = self._stub.RecieveMessages(
             chat_pb2.RecieveMessagesRequest(to_user_login=self._username)
         )
-        self._receiver = chat_receiver.ChatReceiver(response_iterator)
+        self._receiver = ChatReceiver(response_iterator)
         self._receiver.start()
 
     def _start_chat(self) -> None:
@@ -273,7 +274,7 @@ class ChatClient:
 if __name__ == "__main__":
     logging.basicConfig(format="%(message)s", level=logging.DEBUG)
 
-    chat_client = ChatClient("localhost", 50051)
+    chat_client = ChatClient(os.environ["CHAT_SERVER_IP_ADDR"], 50051)
 
     chat_client.connect()
     chat_client.run()

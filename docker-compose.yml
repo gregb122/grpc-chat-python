@@ -5,9 +5,9 @@ services:
         build:
             context: ./chat_server
             dockerfile: Dockerfile
-        image: chat_server
-        volumes: 
-            - ./chat_server/src:/chat_server/src
+        image: chat-server:0.1.0
+        environment:
+            - ETCD_SERVER_IP_ADDR=172.28.0.2
         ports:
             - 50051:50051
         networks:
