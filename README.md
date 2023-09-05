@@ -53,7 +53,7 @@ git clone https://github.com/Gregb122/grpc-terminal-chat.git
 Install grpc-tools to generate code from proto files
 
 ```sh
-pip install grpcio-tools
+python3 -m pip install grpcio-tools
 ```
 
 and then in a root directory of the project:

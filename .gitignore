@@ -48,6 +48,7 @@ stamp-h1
 python/**/*.egg
 python/.eggs/
 python/.tox
+.tox/
 python/build/
 */protobufs/*.py
 */protobufs/*.pyi
