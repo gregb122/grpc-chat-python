@@ -39,7 +39,7 @@
 
 ## Installation
 
-> **Warning**
+> [!WARNING]
 > Writing to your friends about your secrets and wet dreams could be foolish, Security wasn't addressed yet. :triangular_flag_on_post:
 
 ### Get source
