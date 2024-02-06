@@ -106,5 +106,62 @@ class TestServerCalls(unittest.TestCase):
             f"User Bruce not found"
         )
 
+    @patch("chat_server.src.main.chat_pb2")
+    @patch("chat_server.src.main.EtcdMessagesHandler")
+    @patch("chat_server.src.main.logging")
+    @patch("chat_server.src.main.Parse")
+    def test_receive_messages(self,
+                          parse: Mock, 
+                          _logging: Mock, 
+                          etcd_message_handler: Mock, 
+                          chat_pb2: Mock):
+        """Tests chat_server.src.auth.login_user() method."""
+        request = Mock(
+            message=Mock(
+                to_user_login="Batman",
+            )
+        )
+        context = Mock(
+            is_active=Mock(
+                return_value=True
+            )
+        )
+        msg_handler = Mock(
+            get_elems_from_queue=Mock(
+                side_effect=[
+                    [("1", "Message1"), ("2", "Message2"), ("3", "Message3")],
+                    [],
+                    [("1", "Message4"), ("2", "Message5"), ("3", "Message6")],
+                    InterruptedError()
+                ]
+            )
+        )
+        etcd_message_handler.return_value = msg_handler
+        empt_message = Mock()
+        chat_pb2.Message.return_value = empt_message
+        
+        list(self.chat_server.RecieveMessages(request, context))
+        
+        etcd_message_handler.assert_called_once_with(
+            client=self.etcd_client,
+            to_user="Batman"
+        )
+            
+        self.assertEqual(msg_handler.call_count, 3)
+
+        parse.assert_has_calls(
+            call("Message1", empt_message),
+            call("Message2", empt_message),
+            call("Message3", empt_message),
+            call("Message4", empt_message),
+            call("Message5", empt_message),
+            call("Message6", empt_message),          
+        )
+        self.assertEqual(_logging.debug.call_count, 4)
+        msg_handler.store_and_delete_sent_messages.assert_called_once_with(
+            [("1", "Message4"), ("2", "Message5"), ("3", "Message6")])
+        _logging.info.assert_called_once_with()
+
+        
 if __name__ == '__main__':
     unittest.main()
