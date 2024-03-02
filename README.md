@@ -1,6 +1,6 @@
 # gRPC terminal chat
 
-`gRPC terminal chat` lets you easly host your own chat server and set up terminal chat clients with that one wierd friend :trollface:
+`gRPC terminal chat` lets you easly host your own chat server and set up terminal chat clients with that one wierd friend
 
 ## Contents
 
